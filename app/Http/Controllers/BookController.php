@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Book;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\File;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -49,7 +50,7 @@ class BookController extends Controller
         $date = str_replace('-','',$today);        
         $ext_foto = $request->file('foto')->getClientOriginalExtension();
         $foto_file = $date."-".$nama.".". $ext_foto;         
-        $path = $request->file('foto')->storeAs('public/post-image',$foto_file);
+        $path = $request->file('foto')->storeAs('image',$foto_file);
            
         $validator = Validator::make($request->all(),[
             'judul' =>['required'],
@@ -118,31 +119,47 @@ class BookController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, Book $book)
     {
-        $book = Book::findOrFail($id);
-        $validator = Validator::make($request->all(), [
-            'judul' =>['required'],
-            'genre' =>['required'],
-            'author' =>['required'],
-            'terbit' =>['required'],
-            'foto' =>['required'],
+        
+        
+
+        $validasi= $request->validate([
+            'judul'=>'required',
+            'genre'=>'required',
+            'author'=>'required',
+            'terbit'=>'required',
+            'foto'=>''
         ]);
-        if ($validator->fails()) {
-            return response()->json($validator->errors(),Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
+
         try {
-            $book->update($request->all());
-            $response = [
-                'message' => 'Book Update',
-                'data' => $book
-            ];
-            return response()->json($response, Response::HTTP_OK);
-        } catch (QueryException $e) {
+            $response = Book::find($id);        
+            if ($request->file('foto')){
+
+                $old =  $response->foto;
+                File::delete('image',$old);
+
+                $nama = mt_rand(1, 9999);
+                $today = Carbon::today()->toDateString();
+                $date = str_replace('-','',$today);        
+                $ext_foto = $request->file('foto')->getClientOriginalExtension();
+                $foto_file = $date."-".$nama.".". $ext_foto;         
+                $path = $request->file('foto')->storeAs('image',$foto_file);
+                $validasi['foto']=$path;                
+            }
+            
+            $response->update($validasi);
             return response()->json([
-                'message'=> "FAILED ". $e->errorInfo
+                "success" =>true,
+                "message"=>'success'
+            ]);
+        } catch (\Exception $e){
+            return response()->json([
+                "message" =>'Err',
+                "errors"=>$e->getMessage()
             ]);
         }
+    
     }
 
     /**
@@ -155,6 +172,10 @@ class BookController extends Controller
     {
         $book = Book::findOrFail($id);            
         try {
+
+            $old =  $book->foto;
+            File::delete('image',$old);
+
             $book->delete();
 
             $response = [
