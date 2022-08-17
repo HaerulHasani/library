@@ -13,15 +13,10 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('books', function (Blueprint $table) {
+        Schema::create('categories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('category_id');
-            $table->string('judul');
-            $table->string('genre');
-            $table->string('author');
-            $table->string('terbit');
-            $table->string('foto');
-            $table->string('time')->default(now());
+            $table->string('nama')->unique;
+            $table->string('description');
             $table->timestamps();
         });
     }
@@ -33,6 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('books');
+        Schema::dropIfExists('categories');
     }
 };
